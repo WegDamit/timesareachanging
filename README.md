@@ -1,12 +1,12 @@
-# Quasar App
+# The Times They Are A-Changin'
 
-> A Quasar project
+A Quasar project for a small time tracker GUI.
 
-## Build Setup
+Backed using feathers and its inbuild noSQL DB.
+
+## Build
 
 ``` bash
-# install dependencies
-$ npm install
 
 # serve with hot reload at localhost:8080
 $ quasar dev
@@ -17,3 +17,8 @@ $ quasar build
 # lint code
 $ quasar lint
 ```
+
+## Test
+
+Don't...
+
