@@ -1,6 +1,6 @@
 const { authenticate } = require('feathers-authentication').hooks;
-const { populate } = require('feathers-hooks-common')
-const processTimes = require('../../hooks/process-times')
+const { populate } = require('feathers-hooks-common');
+const processTimes = require('../../hooks/process-times');
 
 module.exports = {
   before: {
