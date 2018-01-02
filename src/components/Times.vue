@@ -47,6 +47,7 @@
           :key="project._id"
           v-on:click="prjTileClick(project._id)"
           v-ripple
+          class="prjTile"
         >
           <q-card-title>
             {{project.title}}
@@ -59,21 +60,8 @@
       </div>
     </div>
 
-    <q-card>
-      <q-list highlight >
-        <q-list-header>Projects</q-list-header>
-        <q-item v-for="project in projects" :key="project._id">
-          <q-item-side left>
-            <q-item-tile icon="directions_run" color="black" />
-          </q-item-side>
-          <q-item-main class="row xs-gutter" v-on:click="prjTileClick(project._id)" >
-            <q-item-tile label class="col-4">{{project.title}}</q-item-tile>
-            <q-item-tile sublabel multiline class="col">{{project.description}}</q-item-tile>
-            <q-item-tile v-if="project.range" class="col-auto">{{formatGenericDate(project.range.to, 'DD. MMM YY')}}</q-item-tile>
-          </q-item-main>
-        </q-item>
-      </q-list>
-    </q-card>
+    <!-- list of projects -->
+    <project-list :projects="projects" :clickPrjFn="prjTileClick"></project-list>
 
     <q-card>
       <q-card-title class="text-left">
@@ -253,6 +241,7 @@ import {
 import api from 'src/api'
 import { validationMixin } from 'vuelidate'
 import { required, minLength, between } from 'vuelidate/lib/validators'
+import ProjectList from './ProjectList.vue'
 
 // Date, rouned to next quarter hour
 const
@@ -329,6 +318,7 @@ export default {
   name: 'workhours',
   components: {
     date,
+    ProjectList,
     QAutocomplete,
     QBtn,
     QCard,
@@ -396,10 +386,10 @@ export default {
     sliderLabel () {
       return (roundNearQuater(this.$data.workhour.spent_hours) || '0') + 'h'
     },
-    tileDescription(desc, n ) {
-       if (desc.length <= n) { return desc; }
-    const subString = desc.substr(0, n-1);
-    return (subString.substr(0, subString.lastIndexOf(' '))) + "&hellip;";
+    tileDescription (desc, n) {
+      if (desc.length <= n) { return desc }
+      const subString = desc.substr(0, n - 1)
+      return (subString.substr(0, subString.lastIndexOf(' '))) + '&hellip;'
     },
     timerangeChange (range) {
       let timefrom = null
@@ -544,7 +534,8 @@ export default {
 
 <style lang="stylus" type="text/stylus" scoped>
 .prjTile
-  width 20%
-  max-width 25%
+  height  93%
 
+.prjDate
+  font-size 80%
 </style>
