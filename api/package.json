@@ -29,6 +29,7 @@
     "nodemon": "nodemon node src/"
   },
   "dependencies": {
+    "@feathersjs/feathers": "^3.0.2",
     "body-parser": "^1.18.2",
     "compression": "^1.7.1",
     "cors": "^2.8.4",
@@ -51,7 +52,7 @@
   },
   "devDependencies": {
     "eslint": "^4.14.0",
-    "mocha": "^4.0.1",
+    "mocha": "^4.1.0",
     "request": "^2.83.0",
     "request-promise": "^4.2.2"
   }
