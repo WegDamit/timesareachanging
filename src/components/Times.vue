@@ -1,41 +1,49 @@
 <template>
   <div>
-     <q-card>
-      <q-card-title class="text-left">
+     <q-card class="row items-end">
+      <q-card-title class="text-left col-12">
         Select a single project
       </q-card-title>
-
-      <q-card-main>
-        <p>Autocomplete:</p>
-        <q-search v-model="workhour.project_title" placeholder="Start typing a project name">
-          <q-autocomplete
-            @search="searchProject"
-            @selected="selectedProject"
-            :min-characters="2"
-          />
-        </q-search>
+      <q-card-main class="col-xs-12 col-sm-6">
+        <q-field
+          helper="Search in title and description"
+        >
+          <q-search
+            v-model="workhour.project_title"
+            placeholder="Start typing a project name"
+            float-label="Autocomplete"
+          >
+            <q-autocomplete
+              @search="searchProject"
+              @selected="selectedProject"
+              :min-characters="2"
+            />
+          </q-search>
+      </q-field>
       </q-card-main>
-      <q-card-main>
-        <p>Slect one from list:</p>
-        <q-list>
-          <q-item>
-            <q-item-side icon="supervisor_account" />
-            <q-item-main>
-              <q-select
-                class="no-margin"
-                v-model="workhour.project_id"
-                :options="selectOptions"
-              />
-            </q-item-main>
-          </q-item>
-          <q-item-separator />
-        </q-list>
+      <q-card-main class="col-xs-12 col-sm-6">
+        <q-field
+          helper="Choose from list from backend"
+        >
+          <q-select
+            filter
+            filter-placeholder="Search in list"
+            autofocus-filter
+            separator
+            v-model="workhour.project_id"
+            :options="selectOptions"
+            float-label="Select one from list"
+          />
+        </q-field>
       </q-card-main>
     </q-card>
 
     <div class="row">
-      <div v-for="project in projects">
-        <q-card class="col-3 relative-position"
+      <div
+        v-for="project in projects"
+        class="col-xs-12 col-sm-6 col-md-4 col-lg-2"
+      >
+        <q-card
           :key="project._id"
           v-on:click="prjTileClick(project._id)"
           v-ripple
@@ -43,9 +51,9 @@
           <q-card-title>
             {{project.title}}
           </q-card-title>
-          <q-card-separator />
-          <q-card-main>
-            {{project.description}}
+          <q-card-separator v-if="project.description" />
+          <q-card-main v-if="project.description!==''">
+            <span v-html="tileDescription(project.description, 280)"> </span>
           </q-card-main>
         </q-card>
       </div>
@@ -60,7 +68,7 @@
           </q-item-side>
           <q-item-main class="row xs-gutter" v-on:click="prjTileClick(project._id)" >
             <q-item-tile label class="col-4">{{project.title}}</q-item-tile>
-            <q-item-tile sublabel class="col">{{project.description}}</q-item-tile>
+            <q-item-tile sublabel multiline class="col">{{project.description}}</q-item-tile>
             <q-item-tile v-if="project.range" class="col-auto">{{formatGenericDate(project.range.to, 'DD. MMM YY')}}</q-item-tile>
           </q-item-main>
         </q-item>
@@ -379,6 +387,7 @@ export default {
         this.$data.workhour.project_id = prjid
         this.workhour.project_title = p.title
         console.log('tile click: ' + p.title)
+        Toast.create(`Project ${p.title} selected.`)
       }
       else {
         console.log('Ups. no project.')
@@ -386,6 +395,11 @@ export default {
     },
     sliderLabel () {
       return (roundNearQuater(this.$data.workhour.spent_hours) || '0') + 'h'
+    },
+    tileDescription(desc, n ) {
+       if (desc.length <= n) { return desc; }
+    const subString = desc.substr(0, n-1);
+    return (subString.substr(0, subString.lastIndexOf(' '))) + "&hellip;";
     },
     timerangeChange (range) {
       let timefrom = null
@@ -528,5 +542,9 @@ export default {
 }
 </script>
 
-<style lang="styl">
+<style lang="stylus" type="text/stylus" scoped>
+.prjTile
+  width 20%
+  max-width 25%
+
 </style>
