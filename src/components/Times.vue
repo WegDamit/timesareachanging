@@ -1,6 +1,7 @@
 <template>
   <div>
-     <q-card class="row items-end">
+    <!-- select one project -->
+    <q-card class="row items-end">
       <q-card-title class="text-left col-12">
         Select a single project
       </q-card-title>
@@ -26,18 +27,19 @@
           helper="Choose from list from backend"
         >
           <q-select
-            filter
-            filter-placeholder="Search in list"
-            autofocus-filter
-            separator
             v-model="workhour.project_id"
             :options="selectOptions"
+            separator
+            filter
+            autofocus-filter
+            filter-placeholder="Search in list"
             float-label="Select one from list"
           />
         </q-field>
       </q-card-main>
     </q-card>
 
+    <!-- tiles with projects -->
     <div class="row">
       <div
         v-for="project in projects"
@@ -47,7 +49,7 @@
           :key="project._id"
           v-on:click="prjTileClick(project._id)"
           v-ripple
-          class="prjTile"
+          class="prjTile relative-position"
         >
           <q-card-title>
             {{project.title}}
@@ -63,49 +65,13 @@
     <!-- list of projects -->
     <project-list :projects="projects" :clickPrjFn="prjTileClick"></project-list>
 
-    <q-card>
-      <q-card-title class="text-left">
-        List of logged times
-      </q-card-title>
-      <q-card-main>
-        <q-list highlight >
-          <q-list-header>Logged Work hours</q-list-header>
-          <q-item v-for="workhour in workhours" :key="workhour._id">
-            <q-item-side left>
-              <q-item-tile icon="timer" color="black" />
-            </q-item-side>
-            <q-item-main class="row xs-gutter">
-              <q-item-tile label class="col-4">{{workhour.project_title}}</q-item-tile>
-              <q-item-tile sublabel class="col">{{workhour.description}}</q-item-tile>
-              <q-item-tile v-if="workhour.range" stamp class="col-2">
-                {{formatWorkDate(workhour.range.from)}}
-              </q-item-tile>
-              <q-item-tile v-if="workhour.range" stamp class="col-1">
-                {{formatWorktime(workhour.range.from)}}
-              </q-item-tile>
-              <q-item-tile v-if="workhour.range" stamp class="col-1 self-end">
-                {{formatWorktime(workhour.range.to)}}
-              </q-item-tile>
-            </q-item-main>
-            <q-item-side right icon="more_vert">
-              <q-popover ref="popover">
-                <q-list link>
-                  <q-item @click="$refs.popover.close()">
-                    <q-item-main label="Duplicate" />
-                  </q-item>
-                  <q-item @click="$refs.popover.close()">
-                    <q-item-main label="Change" />
-                  </q-item>
-                  <q-item @click="$refs.popover.close()">
-                    <q-item-main label="Move up" />
-                  </q-item>
-                </q-list>
-              </q-popover>
-            </q-item-side>
-          </q-item>
-        </q-list>
-      </q-card-main>
-    </q-card>
+    <!-- list of logged times -->
+    <workhours-list
+      :workhours="workhours"
+      :clickFn="workhoursListClick"
+      :fabFns="fabFns"
+      title="All logged Work hours"
+    ></workhours-list>
 
     <q-card>
       <q-card-title class="text-left">
@@ -180,23 +146,14 @@
           <q-input
             v-model="workhour.spent_hours"
             type="number"
-            :min=0.25
-            :max=13
+            :min=0.0
+            :max=14
             :step=0.25
-            suffix="hours"
+            :max-decimals=2
+            suffix=" hours"
             label-always
             snap
             @blur="$v.workhour.spent_hours.$touch"
-            :after="[
-              {
-                icon: 'warning',
-                error: true,
-                handler () {
-                  // do something...
-                  console.log('huhu')
-                }
-              }
-            ]"
           />
         </q-field>
       </q-card-main>
@@ -218,10 +175,10 @@ import {
   QCardMain,
   QCardSeparator,
   QCardTitle,
-  QChatMessage,
-  QCheckbox,
   QDatetime,
   QDatetimeRange,
+  QFab,
+  QFabAction,
   QField,
   QInput,
   QItem,
@@ -242,26 +199,27 @@ import api from 'src/api'
 import { validationMixin } from 'vuelidate'
 import { required, minLength, between } from 'vuelidate/lib/validators'
 import ProjectList from './ProjectList.vue'
+import WorkhoursList from './WorkhoursList.vue'
 
 // Date, rouned to next quarter hour
 const
   { formatDate, addToDate } = date,
-  interval = 15 // minuen // * 60 * 1000 // 15 minutes in milliseconds
+  interval = 15, // minuten // * 60 * 1000 // 15 minutes in milliseconds
+  times = api.service('times')
 
-var now = new Date()
-now.setMinutes(Math.round(now.getMinutes() / interval) * interval)
+var now = roundTime(new Date())
 var midnight = new Date(now)
 midnight.setHours(24, 0, 0, 0)
 const later = (addToDate(now, { hours: 8 }) < midnight) ? addToDate(now, { hours: 8 }) : midnight
 // later = (later < midnight) ? later : midnight
 
 // numbers, not dates...
-var roundNearQuater = function (number) {
+var roundNearQuarter = function (number) {
   return (Number.parseFloat(Math.round(number * 4) / 4).toFixed(2))
 }
-
+// round times to the next quarter of an hour.
 function roundTime (t) {
-  let r = t
+  let r = new Date(t)
   r.setMinutes(Math.round(r.getMinutes() / interval) * interval)
   return r
 }
@@ -300,6 +258,33 @@ function parseProjects (list) {
   })
 }
 
+// eslint-disable-next-line no-unused-vars
+function fabFavorite (workhour) { // eslint-disable-line no-unused-vars
+  var actionmsg = '???'
+  if (workhour.favorite) {
+    workhour.favorite = false
+    delete workhour.favorite_date
+    actionmsg = 'Removed from favorites.'
+  }
+  else {
+    workhour.favorite = true
+    workhour.favorite_date = new Date()
+    actionmsg = 'Marked as a favorite.'
+  }
+  api.service('times').update(workhour._id, workhour)
+    .then(() => {
+      console.log('huhu ' + JSON.stringify(workhour), workhour._id)
+      Toast.create(actionmsg)
+    })
+    .catch(err => console.log(err))
+}
+function getWorkhours (query) {
+  // console.log('workhours query DB ', query)
+  return times.find({
+    query: query
+  })
+}
+
 const
   emptyWorkhour = {
     day: now,
@@ -307,14 +292,11 @@ const
       from: now,
       to: (later < midnight) ? later : midnight
     },
-    spent_hours: +roundNearQuater((later - now) / 3600000),
-    project_title: 'none'
+    spent_hours: +roundNearQuarter((later - now) / 3600000),
+    project_title: ''
   }
 
 export default {
-  directives: {
-    Ripple
-  },
   name: 'workhours',
   components: {
     date,
@@ -325,10 +307,10 @@ export default {
     QCardMain,
     QCardSeparator,
     QCardTitle,
-    QChatMessage,
-    QCheckbox,
     QDatetime,
     QDatetimeRange,
+    QFab,
+    QFabAction,
     QField,
     QInput,
     QItem,
@@ -343,9 +325,11 @@ export default {
     QSelect,
     QSlider,
     Ripple,
-    Toast
+    Toast,
+    WorkhoursList
   },
   mixins: [validationMixin],
+  directives: { Ripple },
   props: ['user'],
   data () {
     return {
@@ -353,7 +337,13 @@ export default {
       workhours: [],
       projects: [],
       times: [],
-      selectOptions: []
+      selectOptions: [],
+      fabFns: [
+        { name: 'favorite', fn: fabFavorite, color: 'red', icon: 'favorite' },
+        { name: 'add', fn: fabFavorite, color: 'purple', icon: 'add alarm' },
+        { name: 'build', fn: fabFavorite, color: 'black', icon: 'build' },
+        { name: 'edit', fn: fabFavorite, color: 'blue', icon: 'mode edit' }
+      ]
     }
   },
   computed: {
@@ -376,15 +366,18 @@ export default {
       if (p !== null) {
         this.$data.workhour.project_id = prjid
         this.workhour.project_title = p.title
-        console.log('tile click: ' + p.title)
+        // console.log('tile click: ' + p.title)
         Toast.create(`Project ${p.title} selected.`)
       }
       else {
         console.log('Ups. no project.')
       }
     },
+    workhoursListClick (workhourId) {
+      console.log('huhu', workhourId)
+    },
     sliderLabel () {
-      return (roundNearQuater(this.$data.workhour.spent_hours) || '0') + 'h'
+      return (roundNearQuarter(this.$data.workhour.spent_hours) || '0') + 'h'
     },
     tileDescription (desc, n) {
       if (desc.length <= n) { return desc }
@@ -395,29 +388,35 @@ export default {
       let timefrom = null
       let timeto = null
       let midnight = null
-      let timespan = 0
+      let timespan = { from: new Date(), to: new Date() }
       if (range.from) {
-        timefrom = roundTime(new Date(range.from))
+        timefrom = roundTime(range.from)
         midnight = new Date(timefrom)
-        midnight.setHours(24, 0, 0, 0)
+        midnight.setHours(24, 0, 0, 0) // set min, sec, ms too.
       }
       if (range.to) {
-        timeto = roundTime(new Date(range.to))
+        timeto = roundTime(range.to)
         if (timeto > midnight) {
           timeto = midnight
         }
+      }
+      else {
+        timeto = timefrom
       }
       if (timefrom && timeto && timefrom < timeto) {
         range.from = timefrom
         range.to = timeto
         // times in milli seconds to hours
-        timespan = roundNearQuater((timeto - timefrom) / 3600000)
-        this.$data.workhour.spent_hours = +timespan
+        timespan = +roundNearQuarter((timeto - timefrom) / 3600000)
+        this.$data.workhour.spent_hours = timespan
       }
       else {
         console.log('Ups. Datetime kaputt')
       }
-      return timespan
+      console.log('time from : ' + formatDate(timefrom, 'YY-MM-DD HH:mm Z'))
+      console.log('time to   : ' + formatDate(timeto, 'YY-MM-DD HH:mm Z'))
+
+      return this.$data.workhour.range
     },
     selectedProject (item) {
       Toast.create(`Selected suggestion "${item.label}"`)
@@ -426,18 +425,12 @@ export default {
     searchProject (terms, done) {
       const token = terms.toLowerCase()
       console.log('search ' + token)
-      // let hits = []
-      // let hits = parseProjects(this.$data.projects)
-      //   .filter(item => fuzzysearch(token, item.label.toLowerCase()))
-      // console.log('hits: ', hits)
-      // done(hits)
-      // Ajax mit timeout
+      // Ajax simulant mit timeout
       setTimeout(() => {
         let hits = parseProjects(this.$data.projects)
           .filter(item => fuzzysearch(token, item.label.toLowerCase()) || fuzzysearch(token, item.description.toLowerCase()))
         console.log('hits: ', hits)
         done(hits)
-        // done(filter(terms, {field: 'title', list: parseProjects()}))
       }, 1000)
       // done([])
     },
@@ -465,13 +458,47 @@ export default {
     }
   },
   watch: {
+    'workhour.project_id': {
+      handler: function (val) {
+        let w = this.$data.workhour
+        const prj = this.$data.projects.find(p => p._id === val)
+        if (prj) {
+          w.project_title = prj.title
+          // console.log('workhour project_id changed.', val, prj.title)
+        }
+        else {
+          console.log('Ups. unbekanntes project.', val)
+        }
+      },
+      deep: true
+    },
+    'workhour.project_title': {
+      handler: function (val) {
+        const query = {
+          // _id: this.$data.workhour.project_id,
+          project_title: val,
+          $sort: { createdAt: -1 },
+          $limit: 25
+        }
+        console.log('Updating workhours for project ' + val, query)
+        getWorkhours(query)
+          .then((response) => {
+            this.$data.workhours = response.data
+            console.log('updated DB results: ', this.$data.workhours)
+          })
+      }
+    },
     'workhour.spent_hours': {
       handler: function (val) {
         console.log('workhour spent_hours changed.', val)
+        if (val === null) val = 0.0
         let w = this.$data.workhour
-        w.range.to = addToDate(w.range.from, { hours: val })
-      },
-      deep: true
+        const tt = new Date(w.range.from.getTime() + val * 3600000)
+        console.log('time to   : ' + formatDate(tt, 'YY-MM-DD HH:mm Z'))
+        w.range.to = tt
+        w.spent_hours = +w.spent_hours
+        // addToDate(w.range.from, { hours: val })
+      }
     },
     'workhour.day': {
       handler: function (val) {
@@ -481,12 +508,12 @@ export default {
         w.from.setMonth(val.getMonth())
         w.from.setDate(val.getDate())
         // w.from.setMilliseconds(val.getMilliseconds())
-        w.to = addToDate(w.from, { hours: this.$data.workhour.spent_hours })
+        w.to = new Date(w.from.getTime() + this.$data.workhour.spent_hours * 3600000)
+        // w.to = addToDate(w.from, { hours: this.$data.workhour.spent_hours })
       }
     }
   },
   mounted () {
-    const times = api.service('times')
     const projects = api.service('projects')
 
     // Get all the projects
@@ -512,15 +539,13 @@ export default {
       })
 
     // Get recent logged times
-    times.find({
-      query: {
-        $sort: { createdAt: -1 },
-        $limit: 25
-      }
+    getWorkhours({
+      $sort: { createdAt: -1 },
+      $limit: 25
     })
       .then((response) => {
-        // We want the latest times but in the reversed order
-        this.$data.workhours = response.data.reverse()
+        this.$data.workhours = response.data
+        console.log('query DB results: ', this.$data.workhours)
       })
 
     // Add new times to the time list
