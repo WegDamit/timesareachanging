@@ -14,26 +14,17 @@
 module.exports = function () {
   return function (hook) {
     // The authenticated user
-    const user = hook.params.user;
+    var user = hook.params.user;
     // The actual message text
-    const text = hook.data.description
+    var text = hook.data.description
       // Messages can't be longer than 400 characters
       .substring(0, 400)
       // Do some basic HTML escaping
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     // Override the original data
-    hook.data = {
-      project_title: hook.data.project_title,
-      spent_hours: hook.data.spent_hours,
-      description: text,
-      day: hook.data.day,
-      range: hook.data.range,
-      project_id: hook.data.project_id,
-      // Set the user id
-      userId: user._id,
-      // Add the current time via `getTime`
-      createdAt: new Date().getTime()
-    };
+    hook.data.description = text;
+    hook.data.updatedAt = new Date().getTime();
+    hook.data.user_id = user._id;
     // console.info("saved data: ", hook.data)
 
     // Hooks can either return nothing or a promise
