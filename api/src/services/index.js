@@ -1,9 +1,8 @@
+const workhours = require('./workhours/workhours.service.js');
 const users = require('./users/users.service.js');
 const projects = require('./projects/projects.service.js');
-const times = require('./times/times.service.js');
-module.exports = function () {
-  const app = this; // eslint-disable-line no-unused-vars
+module.exports = function (app) {
+  app.configure(workhours);
   app.configure(users);
   app.configure(projects);
-  app.configure(times);
 };

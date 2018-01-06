@@ -32,6 +32,7 @@
             :color="fab.color || 'blue'"
             @click="workhourFabFn(fab.name, workhour)"
             :icon="fab.icon"
+            :key="fab.name"
           />
         </q-fab>
       </q-item-side>

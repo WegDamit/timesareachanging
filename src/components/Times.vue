@@ -50,6 +50,7 @@
           v-on:click="prjTileClick(project._id)"
           v-ripple
           class="prjTile relative-position"
+          v-bind:class="{ activeTile:  workhour.project_id === project._id }"
         >
           <q-card-title>
             {{project.title}}
@@ -83,9 +84,12 @@
           <q-input class="row col-12"
             v-model="workhour.project_title"
             float-label="Enter the project title"
+            @blur="$v.workhour.project_title.$touch"
+            :error="$v.workhour.project_title.$error"
           />
-          <p v-if="!$v.workhour.project_title.required">The title field is required!</p>
-          <p v-if="!$v.workhour.project_title.minLength">The input must be a bit longer!</p>
+          <p v-if="!$v.workhour.project_title.required">The title field is required.</p>
+          <p v-if="!$v.workhour.project_title.minLength">The input must be a bit longer...</p>
+          <p v-if="!$v.workhour.project_title.isInList">The input must be the name of a known project.</p>
         </q-field>
 
         <q-field label="Description" :label-width="3">
@@ -205,7 +209,7 @@ import WorkhoursList from './WorkhoursList.vue'
 const
   { formatDate, addToDate } = date,
   interval = 15, // minuten // * 60 * 1000 // 15 minutes in milliseconds
-  times = api.service('times')
+  times = api.service('workhours')
 
 var now = roundTime(new Date())
 var midnight = new Date(now)
@@ -271,7 +275,7 @@ function fabFavorite (workhour) { // eslint-disable-line no-unused-vars
     workhour.favorite_date = new Date()
     actionmsg = 'Marked as a favorite.'
   }
-  api.service('times').update(workhour._id, workhour)
+  api.service('workhours').update(workhour._id, workhour)
     .then(() => {
       console.log('huhu ' + JSON.stringify(workhour), workhour._id)
       Toast.create(actionmsg)
@@ -283,6 +287,10 @@ function getWorkhours (query) {
   return times.find({
     query: query
   })
+}
+
+function isInPrjList (value, list) {
+  return typeof value === 'string' && list.find(p => p.title === value)
 }
 
 const
@@ -336,7 +344,6 @@ export default {
       workhour: emptyWorkhour,
       workhours: [],
       projects: [],
-      times: [],
       selectOptions: [],
       fabFns: [
         { name: 'favorite', fn: fabFavorite, color: 'red', icon: 'favorite' },
@@ -350,7 +357,18 @@ export default {
   },
   validations: {
     workhour: {
-      project_title: { required, minLength: minLength(4) },
+      project_title: {
+        required,
+        minLength: minLength(4),
+        isInList (value) {
+          // none is ok, for a while
+          if (value === '') return true
+          return new Promise((resolve, reject) => {
+            console.log('validation ' + value)
+            resolve(isInPrjList(value, this.$data.projects))
+          })
+        }
+      },
       spent_hours: { required, between: between(0, 24) }
     }
   },
@@ -448,7 +466,7 @@ export default {
     },
     send () {
       if (this.$data.workhour) {
-        api.service('times').create(this.$data.workhour)
+        api.service('workhours').create(this.$data.workhour)
           .then(() => {
             let w = this.$data.workhour
             Toast.create(`Logged ${w.spent_hours} to project ${w.project_title}`)
@@ -480,12 +498,21 @@ export default {
           $sort: { createdAt: -1 },
           $limit: 25
         }
-        console.log('Updating workhours for project ' + val, query)
-        getWorkhours(query)
-          .then((response) => {
-            this.$data.workhours = response.data
-            console.log('updated DB results: ', this.$data.workhours)
-          })
+        if (isInPrjList(val, this.$data.projects)) {
+          const prj = this.$data.projects.find(p => p.title === val)
+          if (prj) {
+            this.$data.workhour.project_id = prj._id
+            // console.log('workhour project_id changed.', val, prj._id)
+          }
+          console.log('Updating workhour list for selected project ' + val, query)
+          getWorkhours(query)
+            .then((response) => {
+              if (response.data.length > 0) {
+                this.$data.workhours = response.data
+                console.log('updated DB results: ', this.$data.workhours)
+              }
+            })
+        }
       }
     },
     'workhour.spent_hours': {
@@ -563,4 +590,8 @@ export default {
 
 .prjDate
   font-size 80%
+
+.activeTile
+  background-color: LightBlue
+
 </style>

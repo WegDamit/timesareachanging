@@ -1,19 +1,11 @@
 // Initializes the `projects` service on path `/projects`
-const createService = require('feathers-nedb');
-const createModel = require('../../models/projects.model');
+const createService = require('feathers-mongodb');
 const hooks = require('./projects.hooks');
-const filters = require('./projects.filters');
 
-module.exports = function () {
-  const app = this;
-  const Model = createModel(app);
+module.exports = function (app) {
   const paginate = app.get('paginate');
-
-  const options = {
-    name: 'projects',
-    Model,
-    paginate
-  };
+  const mongoClient = app.get('mongoClient');
+  const options = { paginate };
 
   // Initialize our service with any options it requires
   app.use('/projects', createService(options));
@@ -21,9 +13,9 @@ module.exports = function () {
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('projects');
 
-  service.hooks(hooks);
+  mongoClient.then(db => {
+    service.Model = db.collection('projects');
+  });
 
-  if (service.filter) {
-    service.filter(filters);
-  }
+  service.hooks(hooks);
 };
