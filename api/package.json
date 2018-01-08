@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "description": "API for Times",
+  "description": "Times backend api",
   "version": "0.0.0",
   "homepage": "",
   "main": "src",
@@ -25,7 +25,6 @@
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/. --config .eslintrc.json",
     "start": "node src/",
-    "nodemon": "nodemon node src/",
     "mocha": "mocha test/ --recursive --exit"
   },
   "dependencies": {
@@ -48,7 +47,6 @@
   "devDependencies": {
     "eslint": "^4.14.0",
     "mocha": "^4.1.0",
-    "nodemon": "^1.14.8",
     "request": "^2.83.0",
     "request-promise": "^4.2.2"
   }

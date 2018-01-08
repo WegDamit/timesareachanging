@@ -1,6 +1,6 @@
 # api
 
-> API for Times
+> Times backend api
 
 ## About
 

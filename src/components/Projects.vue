@@ -1,5 +1,7 @@
 <template>
-  <div>
+  <div id="projectsOverview">
+    <project-list :projects="projects" :clickPrjFn="prjTileClick"></project-list>
+
     <q-list highlight >
       <q-list-header>Projects</q-list-header>
       <q-item v-for="project in projects" :key="project._id">
@@ -41,7 +43,7 @@
       <q-card-separator />
       <q-card-main>
         <q-field label="Title" :label-width="3">
-          <q-input class="row col-12" 
+          <q-input class="row col-12"
             :after="[{icon: 'arrow_forward', content: true, handler () {}}]"
             v-model.trim="project.title"
             float-label="Enter the project title"
@@ -52,7 +54,7 @@
           <p v-if="!$v.project.title.minLength">The input must be a bit longer!</p>
         </q-field>
         <q-field label="Description" :label-width="3">
-          <q-input class="row col-12" 
+          <q-input class="row col-12"
             v-model="project.description"
             type="textarea"
             float-label="Enter your description"
@@ -63,11 +65,11 @@
       <q-card-separator />
       <q-card-main>
         <q-field label="Time range" :label-width="3">
-          <q-datetime-range 
-            v-model="project.range" 
+          <q-datetime-range
+            v-model="project.range"
             monday-first
             format24h
-            class="full-width" 
+            class="full-width"
           />
         </q-field>
       </q-card-main>
@@ -111,6 +113,7 @@ import {
 import api from 'src/api'
 import { validationMixin } from 'vuelidate'
 import { required, minLength } from 'vuelidate/lib/validators'
+import ProjectList from './ProjectList.vue'
 
 const
   { formatDate } = date
@@ -122,6 +125,7 @@ export default {
   name: 'Project',
   components: {
     date,
+    ProjectList,
     QBtn,
     QCard,
     QCardMain,
@@ -166,6 +170,21 @@ export default {
     }
   },
   methods: {
+    prjTileClick (prjid) {
+      let p = null
+      for (var i = this.$data.projects.length - 1; i >= 0; i--) {
+        if (this.$data.projects[i]._id === prjid) {
+          p = this.$data.projects[i]
+          break
+        }
+      }
+      if (p !== null) {
+        Toast.create(`Project "${p.title}"" selected.`)
+      }
+      else {
+        console.log('Ups. no project.')
+      }
+    },
     isSent (project) {
       return (project.userId === this.user._id)
     },
